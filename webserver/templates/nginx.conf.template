@@ -6,6 +6,11 @@ upstream docker_mail  {
 	server	mail:8025;
 }
 
+map $scheme $proxy_x_forwarded_ssl {
+	default off;
+	https on;
+}
+
 server {
 	listen ${NGINX_PORT} default_server;
 	listen [::]:${NGINX_PORT} ipv6only=on default_server;
