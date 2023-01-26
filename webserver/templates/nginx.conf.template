@@ -34,7 +34,7 @@ server {
 	#ssl_dhparam /etc/letsencrypt/ssl-dhparam.pem;
 	include /etc/letsencrypt/options-ssl-nginx.conf;	
 	
-	root /var/www/html;
+	root /var/www/html/moodle;
 	index	index.php;
 	
 	location / {
