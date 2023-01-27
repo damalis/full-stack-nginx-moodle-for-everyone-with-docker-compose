@@ -46,14 +46,17 @@ server {
 		try_files $uri /index.php$is_args$args;
 	}
 	
-	location ~ \.php$ {
-		try_files $fastcgi_script_name =404;	
-		include fastcgi_params;
-		fastcgi_pass docker_moodle;
-		fastcgi_index index.php;
-		fastcgi_param PATH_INFO $fastcgi_path_info;
-		fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-		
+	location ~ [^/]\.php(/|$) {
+		fastcgi_split_path_info  ^(.+\.php)(/.+)$;
+		if (!-f $document_root$fastcgi_script_name) {
+			return 404;
+		}
+		fastcgi_index	index.php;
+		fastcgi_pass	docker_moodle;
+		include	fastcgi_params;
+		fastcgi_param	PATH_INFO	$fastcgi_path_info;
+		fastcgi_param	SCRIPT_FILENAME	$document_root$fastcgi_script_name;
+	
 		# This passes 404 pages to Moodle so they can be themed
 		error_page 404 /error/index.php; error_page 403 =404 /error/index.php;
 	}
