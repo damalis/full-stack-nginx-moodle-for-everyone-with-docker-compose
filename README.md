@@ -244,17 +244,9 @@ add and/or remove moodle site folders and files with any ftp client program in `
 Setting Moodle and Nginx to use XSendfile functionality is a big win as it frees PHP from delivering files allowing Nginx to do what it does best, i.e. deliver files.
 
 ```
-$CFG->xsendfile = 'X-Sendfile';           // Apache {@see https://tn123.org/mod_xsendfile/}
-$CFG->xsendfile = 'X-LIGHTTPD-send-file'; // Lighttpd {@see http://redmine.lighttpd.net/projects/lighttpd/wiki/X-LIGHTTPD-send-file}
-$CFG->xsendfile = 'X-Accel-Redirect';     // Nginx {@see http://wiki.nginx.org/XSendfile}
-// If your X-Sendfile implementation (usually Nginx) uses directory aliases specify them
-// in the following array setting:
+$CFG->xsendfile = 'X-Accel-Redirect';
 $CFG->xsendfilealiases = array(
-	'/dataroot/' => $CFG->dataroot,
-	'/cachedir/' => '/var/www/moodle/cache',    // for custom $CFG->cachedir locations
-	'/localcachedir/' => '/var/local/cache',    // for custom $CFG->localcachedir locations
-	'/tempdir/'  => '/var/www/moodle/temp',     // for custom $CFG->tempdir locations
-	'/filedir'   => '/var/www/moodle/filedir',  // for custom $CFG->filedir locations
+    '/dataroot/' => $CFG->dataroot
 );
 ```
 
