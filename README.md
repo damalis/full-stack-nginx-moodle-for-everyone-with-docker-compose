@@ -239,19 +239,6 @@ add and/or remove moodle site folders and files with any ftp client program in `
 
 #### Webserver
 
-##### XSendfile aka X-Accel-Redirect
-
-Setting Moodle and Nginx to use XSendfile functionality is a big win as it frees PHP from delivering files allowing Nginx to do what it does best, i.e. deliver files.
-
-```
-$CFG->xsendfile = 'X-Accel-Redirect';
-$CFG->xsendfilealiases = array(
-    '/dataroot/' => $CFG->dataroot
-);
-```
-
-add the above code in the ```./moodle/moodle/config.php``` file.
-
 add or remove code in the ```./webserver/templates/nginx.conf.template``` file for custom nginx configurations.
 
 [https://docs.nginx.com/nginx/admin-guide/basic-functionality/managing-configuration-files/](https://docs.nginx.com/nginx/admin-guide/basic-functionality/managing-configuration-files/)
