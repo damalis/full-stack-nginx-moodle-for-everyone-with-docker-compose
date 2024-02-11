@@ -31,11 +31,10 @@ services:
             - redis
             - mail
         healthcheck:
-            test: ["CMD-SHELL", "curl -fk https://${DOMAIN_NAME} || exit 1"]
+            test: ["CMD-SHELL", "/usr/local/sbin/php-fpm -i > /dev/null || exit 1"]
             interval: 5s
             timeout: 5s
-            retries: 20
-            start_period: 500s
+            retries: 60
         environment:
             TZ: '${LOCAL_TIMEZONE}'
         labels:
