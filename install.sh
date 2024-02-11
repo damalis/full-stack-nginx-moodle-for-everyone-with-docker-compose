@@ -367,6 +367,7 @@ db_authentication_plugin="mysql_native_password"
 db_authentication_password="USING PASSWORD('"$pma_password"')"
 db_package_manager="apt-get -y update \&\& apt-get install -y gettext-base"
 db_admin_commandline="mariadb-admin"
+db_connect_extension="mariadb"
 PS3="Select the database: "
 select db in mariadb mysql
 do
@@ -377,6 +378,7 @@ do
 		db_authentication_password="BY '"$pma_password"'"
 		db_package_manager="microdnf install -y gettext"
 		db_admin_commandline="mysqladmin"
+		db_connect_extension="mysqli"
 	fi
 	if [ $REPLY -eq 1 ] || [ $REPLY -eq 2 ]
 	then
@@ -417,6 +419,7 @@ sed -i "s/db_authentication_password/${db_authentication_password}/" ./database/
 sed -i 's/db_authentication_plugin/'$db_authentication_plugin'/' .env
 sed -i "s|db_package_manager|${db_package_manager}|" .env
 sed -i 's/db_admin_commandline/'$db_admin_commandline'/' .env
+sed -i 's/db_connect_extension/'$db_connect_extension'/' .env
 sed -i 's/example.com/'$domain_name'/' .env
 sed -i 's/example.com/'$domain_name'/g' ./phpmyadmin/apache2/sites-available/default-ssl.conf
 sed -i 's/email@domain.com/'$email'/' .env
