@@ -34,7 +34,7 @@ services:
             test: ["CMD-SHELL", "php ${WEBSERVER_DOC_ROOT}/moodle/admin/cli/checks.php -v --filter=environment > /dev/null || exit 1"]
             interval: 5s
             timeout: 5s
-            retries: 60
+            retries: 100
         environment:
             TZ: '${LOCAL_TIMEZONE}'
         labels:
