@@ -186,6 +186,7 @@ You can also visit `https://example.com:9001` to access portainer after starting
 ### Show both running and stopped containers
 
 The docker ps command only shows running containers by default. To see all containers, use the -a (or --all) flag:
+
 ```
 docker ps -a
 ```
@@ -193,6 +194,7 @@ docker ps -a
 ### Starting containers
 
 You can start the containers with the `up` command in daemon mode (by adding `-d` as an argument) or by using the `start` command:
+
 ```
 docker compose start
 ```
@@ -206,36 +208,43 @@ docker compose stop
 ### Removing containers
 
 To stop and remove all the containers use the `down` command:
+
 ```
 docker compose down
 ```
 
 to remove portainer and the other containers
+
 ```
 docker rm -f $(docker ps -a -q)
 ```
 
 Use `-v` if you need to remove the database volume which is used to persist the database:
+
 ```
 docker compose down -v
 ```
 
 to remove external certbot-etc and portainer and the other volumes
+
 ```
 docker volume rm $(docker volume ls -q)
 ```
 
 Delete all images, containers, volumes, and networks that are not associated with a container (dangling):
+
 ```
 docker system prune
 ```
 
 To additionally remove any stopped containers and all unused images (not just dangling ones), add the -a flag to the command:
+
 ```
 docker system prune -a
 ```
 
 to remove portainer and the other images
+
 ```
 docker rmi $(docker image ls -q)
 ```
