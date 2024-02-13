@@ -95,12 +95,12 @@ chmod +x install.sh
 
 ## Requirements
 
-Make sure you have the latest versions of **Docker** and **Docker Compose** installed on your machine.
+Make sure you have the latest versions of **Docker** and **Docker Compose** installed on your machine and require up to 2 GB of RAM.
 
 - [How install docker](https://docs.docker.com/engine/install/)
 - [How install docker compose](https://docs.docker.com/compose/install/)
 
-Clone this repository or copy the files from this repository into a new folder. In the **docker-compose.yml** file you may change the database from MariaDB to MySQL.
+Clone this repository or copy the files from this repository into a new folder.
 
 Make sure to [add your user to the `docker` group](https://docs.docker.com/install/linux/linux-postinstall/#manage-docker-as-a-non-root-user).
 
