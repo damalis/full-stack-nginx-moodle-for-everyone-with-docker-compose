@@ -96,7 +96,7 @@ services:
             - '/tmp/acme-challenge:/tmp/acme-challenge'
         restart: unless-stopped
         healthcheck:
-            test: ["CMD-SHELL", "test -d /etc/letsencrypt/live/${DOMAIN_NAME} || exit 1"]
+            test: ["CMD-SHELL", "test -d ${LETSENCRYPT_CONF_PREFIX}/live/${DOMAIN_NAME} || exit 1"]
             interval: 5s
             timeout: 5s
             retries: 20
