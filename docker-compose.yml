@@ -38,7 +38,7 @@ services:
         labels:
             - 'docker-volume-backup.stop-during-backup=true'
         command: >
-            bash -c "apt-get update && sh /tmp/packagecheck.sh 'git zip unzip libpcre3-dev cron nano' && curl -sSL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o - | sh -s gd mysqli intl zip xmlrpc soap exif opcache redis && 
+            bash -c "apt-get update && sh /tmp/packagecheck.sh 'git zip unzip cron nano' && curl -sSL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o - | sh -s gd mysqli intl zip xmlrpc soap exif opcache redis && 
             if [ -z \"$$(ls -A ${WEBSERVER_DOC_ROOT}/moodle/config.php)\" ]; then git clone --depth 1 -b MOODLE_500_STABLE git://git.moodle.org/moodle.git && chown -R www-data:www-data ${WEBSERVER_DOC_ROOT} && php ${WEBSERVER_DOC_ROOT}/moodle/admin/cli/install.php --chmod=02777 --non-interactive --agree-license --wwwroot=https://${DOMAIN_NAME} --dataroot=/home/${DOMAIN_NAME}/moodledata --dbtype=${DATABASE_CONNECT_EXTENSION} --dbhost=database --dbname=${DB_NAME} --dbuser=${DB_USER} --dbpass=${DB_PASSWORD} --fullname=${DOMAIN_NAME} --shortname=moodle --prefix=${DB_TABLE_PREFIX} --adminuser=admin --adminpass=admin123 --adminemail=${LETSENCRYPT_EMAIL} --supportemail=${LETSENCRYPT_EMAIL} && sed -i \"/$$CFG->directorypermissions = 02777;/a \\$$CFG->xsendfile = 'X-Accel-Redirect';\\n\\$$CFG->xsendfilealiases = array(\\n\\t'/dataroot/' => \\$$CFG->dataroot\\n);\" ${WEBSERVER_DOC_ROOT}/moodle/config.php && chmod 0644 ${WEBSERVER_DOC_ROOT}/moodle/config.php; fi && 
             echo \"* * * * * root /usr/local/bin/php ${WEBSERVER_DOC_ROOT}/moodle/admin/cli/cron.php >/dev/null\" > /etc/cron.d/moodle; service cron start || grep -qxF 'date.timezone = ${LOCAL_TIMEZONE}' ${PHP_INI_DIR_PREFIX}/php/conf.d/security.ini || echo 'date.timezone = ${LOCAL_TIMEZONE}' >> ${PHP_INI_DIR_PREFIX}/php/conf.d/security.ini; php-fpm"
 
@@ -145,8 +145,8 @@ services:
             TZ: '${LOCAL_TIMEZONE}'
         command: >
             bash -c "echo ${PMA_HTPASSWD_USERNAME}:phpmyadmin:$$( printf \"%s:%s:%s\" \"${PMA_HTPASSWD_USERNAME}\" \"phpmyadmin\" \"${PMA_HTPASSWD_PASSWORD}\" | md5sum | awk '{print $$1}' ) > ${PMA_CONF_FOLDER}/.htpasswd 
-            && printf 'AuthType Digest\\nAuthName \"phpmyadmin\"\\nAuthDigestProvider file\\nAuthUserFile ${PMA_CONF_FOLDER}/.htpasswd\\nRequire valid-user\\n' > ${WEBSERVER_DOC_ROOT}/.htaccess && a2enmod auth_digest; 
-            mkdir -p ${WEBSERVER_DOC_ROOT}/../upload && chown www-data:www-data ${WEBSERVER_DOC_ROOT}/../upload && chmod a+w ${WEBSERVER_DOC_ROOT}/../upload; mkdir -p ${WEBSERVER_DOC_ROOT}/../save && chown www-data:www-data ${WEBSERVER_DOC_ROOT}/../save && chmod a+w ${WEBSERVER_DOC_ROOT}/../save;
+            && printf 'AuthType Digest\\nAuthName \"phpmyadmin\"\\nAuthDigestProvider file\\nAuthUserFile ${PMA_CONF_FOLDER}/.htpasswd\\nRequire valid-user\\n' > /var/www/html/.htaccess && a2enmod auth_digest; 
+            mkdir -p /var/www/html/../upload && chown www-data:www-data /var/www/html/../upload && chmod a+w /var/www/html/../upload; mkdir -p /var/www/html/../save && chown www-data:www-data /var/www/html/../save && chmod a+w /var/www/html/../save;
             grep -qxF 'ServerName 127.0.0.1' ${APACHE_CONFDIR_PREFIX}/apache2.conf || echo -e '\\nServerName 127.0.0.1' >> ${APACHE_CONFDIR_PREFIX}/apache2.conf; grep -qxF 'date.timezone = ${LOCAL_TIMEZONE}' ${PHP_INI_DIR_PREFIX}/php/conf.d/security.ini || echo 'date.timezone = ${LOCAL_TIMEZONE}' >> ${PHP_INI_DIR_PREFIX}/php/conf.d/security.ini; 
             a2enmod ssl && a2ensite default-ssl && a2dissite 000-default && /docker-entrypoint.sh 'apache2-foreground'"
 
