@@ -495,12 +495,12 @@ do
 done
 echo "Ok."
 
-db_table_prefix_regex="^[0-9a-zA-Z\$_]{3,}$"
+db_table_prefix_regex="^[a-zA-Z\$_]{3,}$"
 read -p 'Enter Database Table Prefix(at least 3 characters, default : mdl_): ' db_table_prefix
 : ${db_table_prefix:=mdl_}
 while [[ ! $db_table_prefix =~ $db_table_prefix_regex ]]
 do
-	echo "Try again (can only contain numerals 0-9, basic Latin letters, both lowercase and uppercase, dollar sign and underscore)"
+	echo "Try again (can only contain basic Latin letters, both lowercase and uppercase, dollar sign and underscore)"
 	read -p 'Enter Database Table Prefix(at least 3 characters, default : mdl_): ' db_table_prefix
 	: ${db_table_prefix:=mdl_}
 	sleep 1
