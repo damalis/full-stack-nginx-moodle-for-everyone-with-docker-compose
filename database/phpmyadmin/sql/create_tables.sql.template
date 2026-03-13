@@ -26,13 +26,13 @@ USE phpmyadmin;
 --
 -- CREATE USER IF NOT EXISTS for phpmyadmin database
 --
-CREATE USER IF NOT EXISTS 'pma_controluser'@'%' IDENTIFIED BY 'db_authentication_password';
+CREATE USER IF NOT EXISTS '$PMA_CONTROLUSER'@'%' IDENTIFIED BY '$PMA_CONTROLPASS';
 
 --
 -- Privileges
 --
 -- (activate this statement if necessary)
-GRANT SELECT, INSERT, DELETE, UPDATE, ALTER ON `phpmyadmin`.* TO 'pma_controluser'@'%';
+GRANT SELECT, INSERT, DELETE, UPDATE, ALTER ON `phpmyadmin`.* TO '$PMA_CONTROLUSER'@'%';
 
 -- --------------------------------------------------------
 
