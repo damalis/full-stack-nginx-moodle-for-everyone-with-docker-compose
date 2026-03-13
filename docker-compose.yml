@@ -23,7 +23,7 @@ services:
         hostname: moodle
         restart: unless-stopped
         ports:
-            - '9000:9000'
+            - '9000:80'
         links:
             - database
             - redis
