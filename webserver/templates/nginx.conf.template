@@ -43,20 +43,26 @@ server {
 	index	index.php;
 	
 	location / {
-		try_files $uri $uri/ /index.php$is_args$args;
+		#try_files $uri $uri/ /index.php$is_args$args;
+		try_files $uri $uri/ /r.php$is_args$args;
 	}
 	
-	location ~ [^/]\.php(/|$) {
-		fastcgi_split_path_info  ^(.+\.php)(/.+)$;
+	location ~ \.php(/|$) {
+		fastcgi_split_path_info ^(.+\.php)(/.+)$;
+		
+		set $path_info $fastcgi_path_info;
+		
+		try_files $fastcgi_script_name $fastcgi_script_name/ /r.php$is_args$args;
 		if (!-f $document_root$fastcgi_script_name) {
 			return 404;
 		}
 		fastcgi_index	index.php;
 		fastcgi_pass	docker_moodle;
-		include	fastcgi_params;
-		fastcgi_param	PATH_INFO	$fastcgi_path_info;
-		fastcgi_param	SCRIPT_FILENAME	$document_root$fastcgi_script_name;
-	
+		include			fastcgi_params;
+		fastcgi_param	PATH_INFO $path_info;
+		fastcgi_param	SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+		fastcgi_param	DOCUMENT_ROOT $realpath_root;
+			
 		# This passes 404 pages to Moodle so they can be themed
 		error_page 404 /error/index.php; error_page 403 =404 /error/index.php;
 	}
@@ -68,9 +74,9 @@ server {
 	#
 	# This should be after the php fpm rule and very close to the last nginx ruleset.
 	# Don't allow direct access to various internal files. See MDL-69333
-	location ~ (/vendor/|/node_modules/|composer\.json|/readme|/README|readme\.txt|/upgrade\.txt|db/install\.xml|/fixtures/|/behat/|phpunit\.xml|\.lock|environment\.xml) {
+	location ~ (/vendor/|/node_modules/|composer\.json|/readme|/README|readme\.txt|/upgrade\.txt|/UPGRADING\.md|db/install\.xml|/fixtures/|/behat/|phpunit\.xml|\.lock|environment\.xml) { 
 		deny all;
-		return 404;
+		return 404; 
 	}
 	# deny access to .htaccess vb. files, if Apache's document root
 	location ~/\. {
@@ -102,7 +108,6 @@ server {
 	#ssl_certificate_key /etc/letsencrypt/live/${NGINX_HOST}/privkey.pem;
 	#ssl_trusted_certificate /etc/letsencrypt/live/${NGINX_HOST}/chain.pem;
 	#ssl_dhparam /etc/letsencrypt/ssl-dhparam.pem;
-	include /etc/letsencrypt/options-ssl-nginx-webserver.conf;
 	
 	location / {		
 		proxy_pass	http://docker_mail;		
