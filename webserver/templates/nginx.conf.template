@@ -37,7 +37,7 @@ server {
 	#ssl_certificate_key /etc/letsencrypt/live/${NGINX_HOST}/privkey.pem;
 	#ssl_trusted_certificate /etc/letsencrypt/live/${NGINX_HOST}/chain.pem;
 	#ssl_dhparam /etc/letsencrypt/ssl-dhparam.pem;
-	include /etc/letsencrypt/options-ssl-nginx.conf;	
+	include /etc/letsencrypt/options-ssl-nginx-webserver.conf;	
 	
 	root /var/www/html/moodle;
 	index	index.php;
@@ -102,7 +102,7 @@ server {
 	#ssl_certificate_key /etc/letsencrypt/live/${NGINX_HOST}/privkey.pem;
 	#ssl_trusted_certificate /etc/letsencrypt/live/${NGINX_HOST}/chain.pem;
 	#ssl_dhparam /etc/letsencrypt/ssl-dhparam.pem;
-	include /etc/letsencrypt/options-ssl-nginx.conf;
+	include /etc/letsencrypt/options-ssl-nginx-webserver.conf;
 	
 	location / {		
 		proxy_pass	http://docker_mail;		
