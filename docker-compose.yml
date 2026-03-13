@@ -40,7 +40,7 @@ services:
         command: >
             bash -c "apt-get update && sh /tmp/packagecheck.sh 'git zip unzip cron nano' && curl -sSL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o - | sh -s gd mysqli intl zip xmlrpc soap exif opcache redis && 
             if [ -z \"$$(ls -A ${WEBSERVER_DOC_ROOT}/moodle/config.php)\" ]; then git clone --depth 1 -b MOODLE_500_STABLE git://git.moodle.org/moodle.git && chown -R www-data:www-data ${WEBSERVER_DOC_ROOT} && php ${WEBSERVER_DOC_ROOT}/moodle/admin/cli/install.php --chmod=02777 --non-interactive --agree-license --wwwroot=https://${DOMAIN_NAME} --dataroot=/home/${DOMAIN_NAME}/moodledata --dbtype=${DATABASE_CONNECT_EXTENSION} --dbhost=database --dbname=${DB_NAME} --dbuser=${DB_USER} --dbpass=${DB_PASSWORD} --fullname=${DOMAIN_NAME} --shortname=moodle --prefix=${DB_TABLE_PREFIX} --adminuser=admin --adminpass=admin123 --adminemail=${LETSENCRYPT_EMAIL} --supportemail=${LETSENCRYPT_EMAIL} && sed -i \"/$$CFG->directorypermissions = 02777;/a \\$$CFG->xsendfile = 'X-Accel-Redirect';\\n\\$$CFG->xsendfilealiases = array(\\n\\t'/dataroot/' => \\$$CFG->dataroot\\n);\" ${WEBSERVER_DOC_ROOT}/moodle/config.php && chmod 0644 ${WEBSERVER_DOC_ROOT}/moodle/config.php; fi && 
-            echo \"* * * * * root /usr/local/bin/php ${WEBSERVER_DOC_ROOT}/moodle/admin/cli/cron.php >/dev/null\" > /etc/cron.d/moodle; service cron start || grep -qxF 'date.timezone = ${LOCAL_TIMEZONE}' ${PHP_INI_DIR_PREFIX}/php/conf.d/security.ini || echo 'date.timezone = ${LOCAL_TIMEZONE}' >> ${PHP_INI_DIR_PREFIX}/php/conf.d/security.ini; php-fpm"
+            echo \"* * * * * root /usr/local/bin/php ${WEBSERVER_DOC_ROOT}/moodle/admin/cli/cron.php >/dev/null\" > /etc/cron.d/moodle; service cron start || TMP=$$(mktemp) && grep -vF 'date.timezone' ${PHP_INI_DIR_PREFIX}/php/conf.d/security.ini > $$TMP && echo 'date.timezone = ${LOCAL_TIMEZONE}' >> $$TMP && cp $$TMP ${PHP_INI_DIR_PREFIX}/php/conf.d/security.ini; php-fpm"
 
     webserver:
         depends_on:
@@ -61,8 +61,8 @@ services:
               source: ./webserver/templates/nginx.conf.template
               target: '${NGINX_PREFIX}/templates/default.conf.template'
             - type: bind
-              source: ./webserver/ssl-option/options-ssl-nginx.conf
-              target: '${LETSENCRYPT_CONF_PREFIX}/options-ssl-nginx.conf'
+              source: ./webserver/ssl-option/options-ssl-nginx-webserver.conf
+              target: '${LETSENCRYPT_CONF_PREFIX}/options-ssl-nginx-webserver.conf'
             - type: bind
               source: ./ssl-conf.sh
               target: '/tmp/ssl-conf.sh'
@@ -75,6 +75,11 @@ services:
             - '443:443'
         links:
             - moodle
+        healthcheck:
+            test: ["CMD-SHELL", "/bin/pidof nginx > /dev/null || exit 1"]
+            interval: 10s
+            timeout: 5s
+            retries: 20
         environment:
             NGINX_HOST: ${DOMAIN_NAME}
             NGINX_PORT: 80
@@ -83,7 +88,8 @@ services:
 
     certbot:
         depends_on:
-            - webserver
+            webserver:
+                condition: service_healthy
         image: certbot/certbot:latest
         container_name: certbot
         networks:
@@ -113,20 +119,23 @@ services:
             - frontend
         volumes:
             - type: bind
-              source: ./phpmyadmin/apache2/sites-available/default-ssl.conf
-              target: '${APACHE_CONFDIR_PREFIX}/sites-available/default-ssl.conf'
+              source: ./phpmyadmin/apache2/sites-available/default-ssl.sample.conf
+              target: '${APACHE_CONFDIR_PREFIX}/sites-available/default-ssl.sample.conf'
             - type: bind
               source: ./phpmyadmin/apache2/ports.conf
               target: '${APACHE_CONFDIR_PREFIX}/ports.conf'
             - type: bind
-              source: ./phpmyadmin/ssl-option/options-ssl-apache.conf
-              target: '${LETSENCRYPT_CONF_PREFIX}/options-ssl-apache.conf'
+              source: ./phpmyadmin/ssl-option/options-ssl-apache-phpmyadmin.conf
+              target: '${LETSENCRYPT_CONF_PREFIX}/options-ssl-apache-phpmyadmin.conf'
             - type: bind
               source: ./phpmyadmin/config.user.inc.php
               target: '${PMA_CONF_FOLDER}/config.user.inc.php'
             - type: bind
               source: ./phpmyadmin/php/conf.d/security.ini
               target: '${PHP_INI_DIR_PREFIX}/php/conf.d/security.ini'
+            - type: bind
+              source: ./packagecheck.sh
+              target: '/tmp/packagecheck.sh'
             - 'certbot-etc:${LETSENCRYPT_CONF_PREFIX}'
         hostname: phpmyadmin
         restart: unless-stopped
@@ -144,11 +153,11 @@ services:
             MEMORY_LIMIT: '${PMA_MEMORY_LIMIT}'
             TZ: '${LOCAL_TIMEZONE}'
         command: >
-            bash -c "echo ${PMA_HTPASSWD_USERNAME}:phpmyadmin:$$( printf \"%s:%s:%s\" \"${PMA_HTPASSWD_USERNAME}\" \"phpmyadmin\" \"${PMA_HTPASSWD_PASSWORD}\" | md5sum | awk '{print $$1}' ) > ${PMA_CONF_FOLDER}/.htpasswd 
+            bash -c "apt-get update && sh /tmp/packagecheck.sh 'gettext-base' && echo ${PMA_HTPASSWD_USERNAME}:phpmyadmin:$$( printf \"%s:%s:%s\" \"${PMA_HTPASSWD_USERNAME}\" \"phpmyadmin\" \"${PMA_HTPASSWD_PASSWORD}\" | md5sum | awk '{print $$1}' ) > ${PMA_CONF_FOLDER}/.htpasswd 
             && printf 'AuthType Digest\\nAuthName \"phpmyadmin\"\\nAuthDigestProvider file\\nAuthUserFile ${PMA_CONF_FOLDER}/.htpasswd\\nRequire valid-user\\n' > /var/www/html/.htaccess && a2enmod auth_digest; 
             mkdir -p /var/www/html/../upload && chown www-data:www-data /var/www/html/../upload && chmod a+w /var/www/html/../upload; mkdir -p /var/www/html/../save && chown www-data:www-data /var/www/html/../save && chmod a+w /var/www/html/../save;
-            grep -qxF 'ServerName 127.0.0.1' ${APACHE_CONFDIR_PREFIX}/apache2.conf || echo -e '\\nServerName 127.0.0.1' >> ${APACHE_CONFDIR_PREFIX}/apache2.conf; grep -qxF 'date.timezone = ${LOCAL_TIMEZONE}' ${PHP_INI_DIR_PREFIX}/php/conf.d/security.ini || echo 'date.timezone = ${LOCAL_TIMEZONE}' >> ${PHP_INI_DIR_PREFIX}/php/conf.d/security.ini; 
-            a2enmod ssl && a2ensite default-ssl && a2dissite 000-default && /docker-entrypoint.sh 'apache2-foreground'"
+            grep -qxF 'ServerName 127.0.0.1' ${APACHE_CONFDIR_PREFIX}/apache2.conf || echo -e '\\nServerName 127.0.0.1' >> ${APACHE_CONFDIR_PREFIX}/apache2.conf; TMP=$$(mktemp) && grep -vF 'date.timezone' ${PHP_INI_DIR_PREFIX}/php/conf.d/security.ini > $$TMP && echo 'date.timezone = ${LOCAL_TIMEZONE}' >> $$TMP && cp $$TMP ${PHP_INI_DIR_PREFIX}/php/conf.d/security.ini; 
+            export DOMAIN_NAME=${DOMAIN_NAME} && envsubst '$$DOMAIN_NAME' < ${APACHE_CONFDIR_PREFIX}/sites-available/default-ssl.sample.conf > ${APACHE_CONFDIR_PREFIX}/sites-available/default-ssl.conf && a2enmod ssl && a2ensite default-ssl && a2dissite 000-default && /docker-entrypoint.sh 'apache2-foreground'"
 
     database:
         image: ${DATABASE_IMAGE_NAME}:${DATABASE_VERSION}

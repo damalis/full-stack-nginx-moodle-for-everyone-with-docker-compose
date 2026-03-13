@@ -20,7 +20,7 @@ if [[ -f /etc/os-release ]]; then
 	echo "Distro       : $PRETTY_NAME"
 	echo "ID           : $ID"
 	echo "ID_LIKE      : $ID_LIKE"
-	id_like=$(grep -Pow 'ID_LIKE=\K[^;]*' /etc/os-release | tr -d '"' | grep -obe 'debian' -e 'ubuntu' -e 'centos' -e 'fedora' -e 'suse' -e 'rhel' | grep -oE '[A-Za-z]+' | head -n 1)
+	id_like=$(grep -Pow 'ID_LIKE=\K[^;]*' /etc/os-release | tr -d '"' | grep -obe 'debian' -e 'ubuntu' -e 'centos' -e 'fedora' -e 'suse' -e 'rhel' | grep -oE '[A-Za-z]+' | head -n 1) 2>&1 > /dev/null
 	echo "Version      : $VERSION_ID"
 	echo "Codename     : $VERSION_CODENAME (or $UBUNTU_CODENAME)"
 elif [[ -f /usr/lib/os-release ]]; then
@@ -28,7 +28,7 @@ elif [[ -f /usr/lib/os-release ]]; then
         echo "Distro       : $PRETTY_NAME"
         echo "ID           : $ID"
 	echo "ID_LIKE      : $ID_LIKE"
-	id_like=$(grep -Pow 'ID_LIKE=\K[^;]*' /usr/lib/os-release | tr -d '"' | grep -obe 'debian' -e 'ubuntu' -e 'centos' -e 'fedora' -e 'suse' -e 'rhel' | grep -oE '[A-Za-z]+' | head -n 1)
+	id_like=$(grep -Pow 'ID_LIKE=\K[^;]*' /usr/lib/os-release | tr -d '"' | grep -obe 'debian' -e 'ubuntu' -e 'centos' -e 'fedora' -e 'suse' -e 'rhel' | grep -oE '[A-Za-z]+' | head -n 1) 2>&1 > /dev/null
         echo "Version      : $VERSION_ID"
         echo "Codename     : $VERSION_CODENAME (or $UBUNTU_CODENAME)"
 else
@@ -168,7 +168,8 @@ sleep 2
 
 if [ "$lpms" == "apk" ]
 then
-	sudo apk add --update docker openrc bind-tools
+	sudo apk update
+	sudo apk add --update docker openrc bind-tools procps
 	sudo rc-update add docker boot
 	sudo service docker start
 elif [ "$lpms" == "dnf" ]
@@ -177,7 +178,7 @@ then
 	sudo dnf -y install dnf-plugins-core yum-utils openssl-libs
 	if [ "$ID" == "fedora" ] || ([ "$ID" == "rhel" ] && [ "$unamem" == "s390x" ])
 	then
-		sudo dnf config-manager addrepo --from-repofile=https://download.docker.com/linux/$ID/docker-ce.repo
+		sudo dnf config-manager addrepo --overwrite --from-repofile=https://download.docker.com/linux/$ID/docker-ce.repo
 	elif [ "$ID" == "rhel" ] || [ "$id_like" == "rhel" ]
 	then
 		sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
@@ -227,7 +228,7 @@ then
 	sudo $lpms update
 	sudo $lpms -y install ca-certificates curl gnupg lsb-release
 	sudo mkdir -m 0755 /etc/apt/keyrings
-	sudo curl -fsSL https://download.docker.com/linux/$operation_system/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+	sudo curl -fsSL https://download.docker.com/linux/$operation_system/gpg | sudo gpg --batch --yes --dearmor -o /etc/apt/keyrings/docker.gpg
 	sudo chmod a+r /etc/apt/keyrings/docker.gpg
 	# Add the repository to Apt sources:
 	echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$operation_system $codename stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
@@ -260,6 +261,16 @@ fi
 if [ $? -ne 0 ]
 then
 	exit 0
+fi
+
+# fixed; WARNING Memory overcommit must be enabled!
+oc_output=$(cat /proc/sys/vm/overcommit_memory 2>&1)
+if [ $oc_output != 1 ]
+then
+	sudo sysctl -w vm.overcommit_memory=1
+	echo "vm.overcommit_memory = 1" | sudo tee -a /etc/sysctl.conf > /dev/null
+	# Apply sysctl params without reboot
+	sudo sysctl --system > /dev/null 2>&1
 fi
 
 if ps -p 1 -o comm= | grep -q systemd
@@ -370,6 +381,7 @@ then
 	: ${domain_name:=localhost}
 	[ "$domain_name" != "localhost" ] && sudo -- sh -c -e "grep -qxF '127.0.1.1  $domain_name' /etc/hosts || echo '127.0.1.1  $domain_name' >> /etc/hosts"
 	ping -c 1 $domain_name 2>&1 > /dev/null
+	sudo -- sh -c -e "grep -qxF '127.0.1.1  mail.$domain_name' /etc/hosts || echo '127.0.1.1  mail.$domain_name' >> /etc/hosts"
 else
 	domain_name=""
 	read -p 'Enter Domain Name(e.g. : example.com): ' domain_name
@@ -389,6 +401,7 @@ do
 		: ${domain_name:=localhost}
 		[ "$domain_name" != "localhost" ] && sudo -- sh -c -e "grep -qxF '127.0.1.1  $domain_name' /etc/hosts || echo '127.0.1.1  $domain_name' >> /etc/hosts"
 		ping -c 1 $domain_name 2>&1 > /dev/null
+		sudo -- sh -c -e "grep -qxF '127.0.1.1  mail.$domain_name' /etc/hosts || echo '127.0.1.1  mail.$domain_name' >> /etc/hosts"
 	else
 		read -p 'Enter Domain Name(e.g. : example.com): ' domain_name
 		#[ "$domain_name" != "localhost" ] && sudo -- sh -c -e "sed -i '/$domain_name/d' /etc/hosts"
@@ -406,22 +419,22 @@ then
 	ssl_snippet="echo 'Generated Self-signed SSL Certificate at localhost'"
 	if [ "$lpms" == "apk" ]
 	then
-		sudo apk add --no-cache nss-tools go git
+		sudo apk add --no-cache nss-tools go
 	elif [ "$lpms" == "dnf" ]
 	then
-		sudo dnf install nss-tools go git
+		sudo dnf -y install nss-tools golang
 	elif [ "$lpms" == "yum" ]
 	then
-		sudo yum install nss-tools go git
+		sudo yum -y install nss-tools golang
 	elif [ "$lpms" == "zypper" ]
 	then
-		sudo zypper install mozilla-nss-tools go git
+		sudo zypper install -y mozilla-nss-tools go
 	elif [ "$lpms" == "apt" ]
 	then
-		sudo apt install libnss3-tools go git
+		sudo apt -y install libnss3-tools golang
 	elif [ "$lpms" == "pacman" ]
 	then
-		sudo pacman -S nss go git
+		sudo pacman -S --noconfirm nss go
 	else
 		echo
 		echo "No supported package manager found"
@@ -431,7 +444,7 @@ then
 	sudo rm -Rf mkcert && git clone https://github.com/FiloSottile/mkcert &&
 	cd ./mkcert
 	sudo go build -ldflags "-X main.Version=$(git describe --tags)"
-	sudo ./mkcert -uninstall && ./mkcert -install && ./mkcert -key-file privkey.pem -cert-file chain.pem $domain_name *.$domain_name && sudo cat privkey.pem chain.pem > fullchain.pem && sudo mkdir -p ../certbot/live/$domain_name && sudo mv *.pem ../certbot/live/$domain_name
+	./mkcert -uninstall && ./mkcert -install && ./mkcert -key-file privkey.pem -cert-file chain.pem $domain_name *.$domain_name && sudo cat privkey.pem chain.pem > fullchain.pem && sudo mkdir -p ../certbot/live/$domain_name && sudo mv *.pem ../certbot/live/$domain_name
 	cd ..
 	echo "Ok."
 else
@@ -568,17 +581,12 @@ case "$choice" in
   * ) echo "Invalid input! Aborting now..."; exit 0;;
 esac
 
-\cp ./phpmyadmin/apache2/sites-available/default-ssl.sample.conf ./phpmyadmin/apache2/sites-available/default-ssl.conf
-\cp ./database/phpmyadmin/sql/create_tables.sql.template.example ./database/phpmyadmin/sql/create_tables.sql.template
+sudo \cp env.example .env
 
-\cp env.example .env
-
-sed -i "s/db_authentication_password/${db_authentication_password}/" ./database/phpmyadmin/sql/create_tables.sql.template
 sed -i "s|db_package_manager|${db_package_manager}|" .env
 sed -i 's/db_admin_commandline/'$db_admin_commandline'/' .env
 sed -i 's/db_connect_extension/'$db_connect_extension'/' .env
 sed -i 's/example.com/'$domain_name'/' .env
-sed -i 's/example.com/'$domain_name'/g' ./phpmyadmin/apache2/sites-available/default-ssl.conf
 sed -i 's/email@domain.com/'$email'/' .env
 sed -i "s/ssl_snippet/$ssl_snippet/" .env
 sed -i 's/which_db/'$which_db'/g' .env
@@ -589,7 +597,6 @@ sed -i 's/db_table_prefix/'$db_table_prefix'/' .env
 sed -i 's/mysql_root_password/'$mysql_root_password'/' .env
 sed -i 's/pma_username/'$pma_username'/' .env
 sed -i 's/pma_password/'$pma_password'/' .env
-sed -i 's/pma_controluser/'$pma_username'/g' ./database/phpmyadmin/sql/create_tables.sql.template
 sed -i "s@directory_path@$(pwd)@" .env
 sed -i 's/local_timezone/'$local_timezone'/' .env
 
