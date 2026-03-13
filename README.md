@@ -357,7 +357,7 @@ $CFG->session_redis_lock_retry = 100;
 
 add the above code in the ```./moodle/moodle/config.php``` file.
 
-che_store#Configuring_Redis_in_Moodle](https://docs.moodle.org/500/en/Redis_cache_store#Configuring_Redis_in_Moodle)
+[cache_store#Configuring_Redis_in_Moodle](https://docs.moodle.org/500/en/Redis_cache_store#Configuring_Redis_in_Moodle)
 
 #### Mail
 
